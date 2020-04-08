@@ -1,0 +1,5 @@
+
+In case you forget...
+	. just run doit.yaml
+		. ansible-playbook doit.yaml
+

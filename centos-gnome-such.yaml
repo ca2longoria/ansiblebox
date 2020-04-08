@@ -1,0 +1,55 @@
+
+- hosts: local
+  
+  tasks:
+  
+  - name: Get centos-gnome id
+    ec2_remote_facts:
+      filters:
+        "tag:Name": centos-gnome
+      region: us-east-1
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+    register: ec2
+  
+  - debug:
+      var: ec2
+  
+  - name: set target_id
+    set_fact:
+      target_id: '{{ ec2["instances"][0]["id"] }}'
+  
+  - name: Get to running state
+    ec2:
+      state: running
+      instance_ids:
+        - '{{ target_id }}'
+      wait: true
+      region: us-east-1
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+    register: ec2launched
+  
+  - debug:
+      var: ec2launched
+  
+  - name: set private_ip
+    set_fact:
+      private_ip: '{{ ec2launched["instances"][0]["private_ip"] }}'
+  
+  - name: Create ssh command source file
+    shell: echo "ssh -i ~/.ssh/synapsehaven -Y cesar@{{ private_ip }}" > ssh.centos-gnome
+    args:
+      chdir: '{{ lookup("env","PWD") }}'
+  
+  - set_fact:
+      ansible_user: cesar
+  - set_fact:
+      ansible_ssh_private_key_file: /home/cesar/.ssh/ec2key1.pem
+  
+  - include: tmpvolume.yaml
+    vars:
+      device_name: xvdcn
+    with_items:
+      - '{{ target_id }}'
+  

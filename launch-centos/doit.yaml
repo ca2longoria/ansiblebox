@@ -1,0 +1,30 @@
+
+- hosts: local.centos
+  
+  tasks:
+  
+  - set_fact:
+      vol_size: 8
+    when: vol_size is not defined
+  - set_fact:
+      _vol_size: '{{ vol_size }}'
+  
+  - include_tasks: launch-centos.yaml
+    vars:
+      group: default-open
+      vol_size: '{{ _vol_size }}'
+#  - include_tasks: launch-centos.yaml
+#    vars:
+#      group: default-open
+#      ami_id: '{{ ami_id }}'
+#      vol_size: '{{ _vol_size }}'
+  
+  - debug:
+      msg: ding dang doogle '{{ public_ip }}'
+  
+  - name: Copy files over
+    shell: |
+      scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /home/cesar/.ssh/ec2key1.pem root/* 'centos@{{ public_ip }}:/'
+    args:
+      chdir: '{{ lookup("env","PWD") }}'
+

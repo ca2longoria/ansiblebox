@@ -1,0 +1,17 @@
+
+- hosts: local
+  
+  tasks:
+  
+  # NOTE: For some reason, ec2 modules may need to be run as a local_action, in
+  #   order to use the access/secret key env vars.
+#  - name: Create an associated Elastic IP
+#    local_action: ec2_eip 
+#        region={{ aws_region }}
+#    register: eip
+  
+  - include: ec2launch.yaml
+    vars:
+      instance_name: doobleyop
+      instance_type: t2.micro
+  

@@ -1,0 +1,77 @@
+---
+  
+  - set_fact:
+      stop_prom: false
+    when: stop_prom is not defined
+  
+  - name: Get tar file
+    get_url:
+      url: https://github.com/prometheus/prometheus/releases/download/v2.2.1/prometheus-2.2.1.linux-amd64.tar.gz
+      dest: /tmp/prometheus.tar.gz
+  
+  - name: Untar file
+    unarchive:
+      src: /tmp/prometheus.tar.gz
+      dest: /opt/
+      remote_src: true
+    become: true
+    register: untar
+  
+  - name: Shell, make symlinks
+    shell: |
+      A=`find . -maxdepth 1 -type d -name 'prometheus-*'`
+      [ -L prometheus ] && rm prometheus
+      [ -L /usr/local/bin/prometheus ] && rm /usr/local/bin/prometheus
+      
+      ln -sf "$A" prometheus
+      ln -sf /opt/prometheus/prometheus /usr/local/bin/
+      ln -sf /opt/prometheus/prometheus.yml /etc/
+    args:
+      chdir: /opt
+    become: true
+    register: symlinks_out
+  
+  - name: Copy prometheus config appends
+    copy:
+      src: '{{ item }}'
+      dest: /tmp/
+    with_items:
+      - promadd.yml
+  
+  - debug:
+      var: symlinks_out
+  
+  - name: Append prometheus config appends
+    shell: |
+      cat "/tmp/{{ item }}" >> /etc/prometheus.yml
+    with_items:
+      - promadd.yml
+    become: true
+    register: appends_out
+  
+  - name: Stop prometheus if wanna stop it
+    shell: |
+      PID=`ps -ef | grep -v grep | grep prometheus.*yml | awk '{print $2}'`
+      kill $PID
+    when: stop_prom
+    register: promstop
+    
+  - name: Prometheus runstate
+    shell: |
+      ps -ef | grep -v grep | grep 'prometheus.*yml$'
+    ignore_errors: true
+    register: promstate
+  
+  - name: Get prometheus running
+    shell: |
+      prometheus --config.file /etc/prometheus.yml --web.enable-lifecycle </dev/null 2>&1 >/var/tmp/prom.log &
+      disown
+    async: 1
+    poll: 0
+    when: promstate["failed"]
+    register: promout
+  
+  - debug:
+      var: promout
+
+

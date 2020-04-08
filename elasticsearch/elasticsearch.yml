@@ -1,0 +1,34 @@
+# Install elasticsearch
+---
+  - name: install prerequisite packages
+    yum:
+      name: '{{ item }}'
+      state: present
+    with_items:
+      - java-1.8.0-openjdk
+    become: true
+  
+  - name: rpm signing key
+    shell: |
+      rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    become: true
+  
+  - name: copy over the .repo file
+    copy:
+      src: ./elasticsearch.repo
+      dest: /etc/yum.repos.d/
+    become: true
+  
+  - name: install elasticsearch package
+    yum:
+      name: elasticsearch
+      state: present
+    become: true
+  
+  - name: start elasticsearch service
+    service:
+      name: elasticsearch
+      state: started
+    become: true
+
+

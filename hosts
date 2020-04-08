@@ -1,0 +1,17 @@
+[local]
+127.0.0.1
+
+[local:vars]
+aws_region=us-east-1
+ami_amazon_linux=ami-a4c7edb2
+subnet_id=subnet-8e7767d6
+host_key_checking=false
+
+[localcentos]
+127.0.0.1
+
+[localcentos:vars]
+ansible_user=centos
+ansible_ssh_private_key_file=/home/cesar/.ssh/ec2key1.pem
+host_key_checking=false
+

@@ -1,0 +1,14 @@
+
+- hosts: local.centos
+  
+  tasks:
+  
+  - set_fact:
+      target: bogus
+    when: target is not defined
+  
+  - include_tasks: taiga-install.yaml
+    with_items:
+      - '{{ target }}'
+
+

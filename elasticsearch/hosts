@@ -1,0 +1,15 @@
+[elasticsearch]
+34.201.169.10
+
+[elasticsearch:vars]
+ansible_ssh_key_file=~/.ssh/ec2key1.pem
+ansible_ssh_user=centos
+
+[prometheus]
+34.201.169.10
+
+[prometheus:vars]
+ansible_ssh_key_file=~/.ssh/ec2key1.pem
+ansible_ssh_user=centos
+
+

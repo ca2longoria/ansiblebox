@@ -1,0 +1,19 @@
+
+- hosts: elasticsearch
+  
+  tasks:
+    
+  - import_tasks: elasticsearch.yml
+
+
+- hosts: prometheus
+  
+  tasks:
+  
+  - import_tasks: prometheus.yml
+    vars:
+      stop_prom: '{{ stop_prom | default(false) }}'
+  
+  - import_tasks: exporters.yml
+
+

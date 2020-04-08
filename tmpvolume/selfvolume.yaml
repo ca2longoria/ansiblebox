@@ -1,0 +1,12 @@
+
+- hosts: localhost
+  
+  vars:
+    own_id: "{{ lookup('file','id') }}"
+  
+  tasks:
+  - include_tasks: tmpvolume.yaml
+    with_items:
+      - "{{ own_id }}"
+    
+

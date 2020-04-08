@@ -1,0 +1,97 @@
+
+# Meant to be called through an include task.
+# {{ item }} = target instance id
+  
+  - set_fact:
+      volume_size: 12
+    when: volume_size is not defined
+  - set_fact:
+      volume_type: gp2
+    when: volume_type is not defined
+  - set_fact:
+      device_name: xvdn
+    when: device_name is not defined
+  - set_fact:
+      ec2_region: us-east-1
+    when: ec2_region is not defined
+
+  - name: Volume create/append
+    ec2_vol:
+      instance: '{{ item }}'
+      volume_size: '{{ volume_size }}'
+      volume_type: '{{ volume_type }}'
+      device_name: '{{ device_name }}'
+      tags:
+        Name: autovol
+      region: '{{ ec2_region }}'
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+    register: volresult
+  
+  - name: get target Instance data
+    ec2_remote_facts:
+      filters:
+        instance-id: '{{ item }}'
+      region: '{{ ec2_region }}'
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+    register: target_facts
+  
+  #- debug:
+  #    var: target_facts
+  
+  - set_fact:
+      tmpvolume_target_ip: '{{ target_facts["instances"][0]["private_ip_address"] }}'
+  
+  - name: partition
+    parted:
+      device: '/dev/{{ device_name }}'
+      number: 1
+      state: present
+    delegate_to: '{{ tmpvolume_target_ip }}'
+    become: yes
+    register: partition
+  
+  - debug:
+      var: partition
+  
+  - name: mkfs ext4
+    filesystem:
+      fstype: ext4
+      dev: '/dev/{{ device_name }}1'
+    delegate_to: '{{ tmpvolume_target_ip }}'
+    become: yes
+    register: mkfs
+  
+  - debug:
+      var: mkfs
+  
+  - name: Create /mnt/auto
+    file:
+      path: /mnt/auto
+      state: directory
+    delegate_to: '{{ tmpvolume_target_ip }}'
+    become: yes
+    register: mkdir
+
+  # For whatever reason, the mount module claims success to no effect.
+  - name: Mount volume
+    shell: mount '/dev/{{ device_name }}1' /mnt/auto
+    delegate_to: '{{ tmpvolume_target_ip }}'
+    become: yes
+    register: mount
+  
+#  - name: Mount volume
+#    mount:
+#      path: '/mnt/auto'
+#      src: '/dev/{{ device_name }}1'
+#      fstype: ext4
+#      state: present
+#    when: not mkfs.failed
+#    delegate_to: '{{ tmpvolume_target_ip }}'
+#    become: yes
+#    register: mount
+  
+  - debug:
+      var: mount
+

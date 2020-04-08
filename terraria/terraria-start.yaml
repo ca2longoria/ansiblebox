@@ -1,0 +1,130 @@
+
+- hosts: local.centos
+  
+  tasks:
+  
+  - set_fact:
+      centos7: ami-ae7bfdb8
+  
+  - name: Start an Instance for Terraria
+    ec2:
+      key_name: ec2key1
+      instance_type: t2.medium
+      image: '{{ centos7 }}'
+      group: terraria
+      count: 1
+      instance_tags:
+        Name: terraria
+      instance_initiated_shutdown_behavior: terminate
+      wait: true
+      region: us-east-1
+      vpc_subnet_id: subnet-8e7767d6
+      assign_public_ip: yes
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+    register: ec2
+  
+  - debug:
+      var: ec2
+  
+  - set_fact:
+      public_ip: '{{ ec2["instances"][0]["public_ip"] }}'
+      root_id: '{{ ec2["instances"][0]["block_device_mapping"]["/dev/sda1"]["volume_id"] }}'
+  
+  - name: Set root vol name tag
+    ec2_tag:
+      region: us-east-1
+      resource: '{{ root_id }}'
+      state: present
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+      tags:
+        Name: terraria-root
+  
+  - name: Create ssh command source file
+    shell: echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ~/.ssh/ec2key1.pem -Y centos@{{ public_ip }}" > ssh.terraria
+    args:
+      chdir: '{{ lookup("env","PWD") }}'
+  
+  - name: Wait for it...
+    wait_for_connection:
+      timeout: 120
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ public_ip }}'
+  
+  - name: Install packages
+    yum:
+      name: '{{ item }}'
+      state: latest
+    with_items:
+      - unzip
+      - vim
+      - tmux
+      - git
+    become: yes
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ public_ip }}'
+  
+  # Server files setup
+  - name: Copy configs and creds
+    command: scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ~/.ssh/ec2key1.pem server.conf /opt/aws/s3-limited.cred.env 'centos@{{ public_ip }}:/var/tmp/'
+    args:
+      chdir: '{{ lookup("env","PWD") }}'
+  
+  #- name: Copy aws creds # Is this even necessary?
+  #  synchronize:
+  #    src: /opt/aws/s3-limited.cred.env
+  #    dest: /var/tmp/cred.env
+  #  vars:
+  #    ansible_ssh_user: centos
+  #  delegate_to: '{{ public_ip }}'
+  
+  - name: Get server.tgz archive
+    s3:
+      bucket: ca2longoria-limited
+      object: /server.tgz
+      dest: /var/tmp/server.tgz
+      mode: get
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ public_ip }}'
+  
+  - name: Extract worlds
+    shell: cd /var/tmp && tar xzf server.tgz
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ public_ip }}'
+  
+  - name: Download Terreria server zip
+    get_url:
+      url: http://terraria.org/server/terraria-server-1353.zip
+      dest: ~/terraria.zip
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ public_ip }}'
+  
+  - set_fact:
+      tdir: 'terraria'
+  
+  - name: Unzip
+    shell: cd ~ && unzip terraria.zip && rm terraria.zip && mv * '{{ tdir }}'
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ public_ip }}'
+  
+  - name: Links
+    shell: |
+      chmod +x '$PWD/{{ tdir }}/Linux/TerrariaServer.bin.x86_64';
+      ln -s '$PWD/{{ tdir }}/Linux/TerrariaServer.bin.x86_64' /usr/local/bin/terraria;
+    become: yes
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ public_ip }}'
+    
+  
+  
+  

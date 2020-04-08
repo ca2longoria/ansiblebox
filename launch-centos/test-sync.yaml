@@ -1,0 +1,24 @@
+
+- hosts: local.centos
+  
+  tasks:
+  
+  - set_fact:
+      remote_user: centos
+  - set_fact:
+      ansible_ssh_private_key_file: /home/cesar/.ssh/ec2key1.pem
+  
+  - name: scp it boi
+    shell: |
+      scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ~/.ssh/ec2key1.pem root/* centos@107.23.245.114:/
+    args:
+      chdir: '{{ lookup("env","PWD") }}'
+  
+#  - name: Sync that BOIII!
+#    synchronize:
+#      src: root
+#      dest: /
+#    args:
+#      chdir: '{{ lookup("env","PWD") }}'
+#    delegate_to: 107.23.245.114
+

@@ -1,0 +1,12 @@
+  
+  # node_exporter
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']
+  
+  # elasticsearch_exporter
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['localhost:9108']
+
+

@@ -1,0 +1,19 @@
+
+#- hosts: local.centos
+  
+#  tasks:
+  
+  # Tor v 7.0.9
+  - name: Download tor browser linux
+    shell: |
+      cd /var/tmp;
+      curl -L -o tor.tar.xz "https://www.torproject.org/dist/torbrowser/7.0.9/tor-browser-linux64-7.0.9_en-US.tar.xz";
+      tar xf tor.tar.xz;
+      mv tor-browser_en-US tor;
+      chown -R centos:centos tor;
+      echo "cd /var/tmp/tor; ./start-tor-browser.desktop" > /usr/local/bin/tor-browser.start;
+      chmod +x /usr/local/bin/tor-browser.start;
+    become: yes
+    delegate_to: '{{ item }}'
+    
+

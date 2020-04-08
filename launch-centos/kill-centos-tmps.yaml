@@ -1,0 +1,28 @@
+
+- hosts: local.centos
+  
+  tasks:
+  
+  - name: Facts...
+    ec2_remote_facts:
+      filters:
+        "tag:Name": centos-tmp
+      region: us-east-1
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+    register: ec2
+  
+  - set_fact:
+      target_ids: '{{ ec2["instances"] | map(attribute="id") | list }}'
+  
+  - debug:
+      var: target_ids
+  
+  - name: Stop centos-tmp instances
+    ec2:
+      instance_ids: '{{ target_ids }}'
+      state: absent
+      region: us-east-1
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+

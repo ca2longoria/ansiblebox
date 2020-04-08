@@ -1,0 +1,56 @@
+
+#- hosts: local.centos
+  
+#  tasks:
+  
+  - set_fact:
+      target_user: centos
+    when: target_user is not defined
+  
+#  - name: Install dependencies (docker)
+#    yum:
+#      name: docker
+#      state: latest
+#    become: yes
+#    vars:
+#      ansible_ssh_user: centos
+#      ansible_ssh_private_key_file: /home/cesar/.ssh/ec2key1.pem
+#    delegate_to: '{{ item }}'
+  
+  - name: Install dependencies (docker)
+    shell: |
+      curl -L get.docker.com > get-docker.sh;
+      chmod +x get-docker.sh;
+      which docker 2>/dev/null || sudo ./get-docker.sh;
+      which docker 2>/dev/null || sudo usermod -aG docker centos;
+    vars:
+      ansible_ssh_user: '{{ target_user }}'
+      ansible_ssh_private_key_file: /home/cesar/.ssh/ec2key1.pem
+    delegate_to: '{{ item }}'
+ 
+  - name: Start docker service
+    shell: |
+      sudo service docker start
+    vars:
+      ansible_ssh_user: '{{ target_user }}'
+      ansible_ssh_private_key_file: /home/cesar/.ssh/ec2key1.pem
+    delegate_to: '{{ item }}'
+  
+  - name: Checkout Taiga docker install repo
+    git:
+      repo: 'https://github.com/ipedrazas/taiga-docker.git'
+      dest: /var/tmp/taiga-docker
+    vars:
+      - ansible_ssh_user: '{{ target_user }}'
+    delegate_to: '{{ item }}'
+  
+  - name: Run setup.sh
+    shell: |
+      cd /var/tmp/taiga-docker;
+      sudo ./setup.sh
+    vars:
+      - ansible_ssh_user: '{{ target_user }}'
+    delegate_to: '{{ item }}'
+
+
+

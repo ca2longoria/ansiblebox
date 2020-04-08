@@ -1,0 +1,48 @@
+
+  - set_fact:
+      instance_type: t2.nano
+    when: instance_type is not defined
+  - set_fact:
+      ec2_wait: yes
+    when: ec2_wait is not defined
+  - set_fact:
+      ec2_group: default
+    when: ec2_group is not defined
+  - set_fact:
+      ec2_count: 1
+    when: ec2_count is not defined
+  - set_fact:
+      vpc_subnet_id: subnet-8e7767d6
+    when: vpc_subnet_id is not defined
+  - set_fact:
+      assign_public_ip: yes
+    when: assign_public_ip is not defined
+  - set_fact:
+      instance_name: unnamed
+    when: instance_name is not defined
+  
+  - name: Create EC2 Instance
+    ec2:
+      key_name: ec2key1
+      region: us-east-1
+      instance_type: '{{ instance_type }}'
+      image: ami-a4c7edb2
+      wait: '{{ ec2_wait }}'
+      group: '{{ ec2_group }}'
+      count: '{{ ec2_count }}'
+      vpc_subnet_id: '{{ vpc_subnet_id }}'
+      assign_public_ip: '{{ assign_public_ip }}'
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+    register: ec2
+  
+  - name: Add name tag
+    ec2_tag:
+      region: us-east-1
+      resource: '{{ ec2["instance_ids"][0] }}'
+      state: present
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+      tags:
+        Name: '{{ instance_name }}'
+

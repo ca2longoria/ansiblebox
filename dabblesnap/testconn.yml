@@ -1,0 +1,60 @@
+
+- hosts: all
+  
+  tasks:
+  
+  - name: install postgresql packages
+    yum:
+      name: '{{ item }}'
+      state: present
+    with_items:
+      - postgresql8
+      - postgresql8-server
+      - postgresql-jdbc
+      - python27-psycopg2
+    become: true
+  
+  - name: postgresql enable at boot?
+    service:
+      name: postgresql
+      enabled: yes
+      args: initdb
+    become: true
+  
+  - name: postgresql initdb
+    command: service postgresql initdb
+    ignore_errors: true
+    become: true
+  
+  - name: start postgresql
+    service:
+      name: postgresql
+      state: started
+    become: true
+  
+  - name: setup postgresql jira db
+    become_user: postgres
+    postgresql_db:
+      name: jiradb
+      encoding: UTF-8
+    become: true
+  
+  - name: setup postgresql jira user
+    become_user: postgres
+    postgresql_user:
+      name: jira
+      password: jirajira
+    become: true
+  
+  - name: set postgresql jira user priveleges
+    become_user: postgres
+    postgresql_privs:
+      db: jiradb
+      role: jira
+      objs: ALL_IN_SCHEMA
+      privs: ALL
+    become: true
+
+
+
+

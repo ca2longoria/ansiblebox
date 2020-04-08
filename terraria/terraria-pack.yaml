@@ -1,0 +1,65 @@
+
+- hosts: local.centos
+  
+  tasks:
+  
+  - name: Facts...
+    ec2_remote_facts:
+      filters:
+        instance-state-name: running
+        "tag:Name": terraria
+      region: us-east-1
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+    register: ec2
+  
+  - set_fact:
+      instances: '{{ ec2["instances"] | sort(true,attribute="launch_time") }}'
+  - set_fact:
+      target: '{{ instances[0] }}'
+  - set_fact:
+      target_ip: '{{ target["public_ip_address"] }}'
+  
+  - debug:
+      var: target
+  
+  - name: git commit
+    shell: |
+      git add .;
+      git commit -m "Latest commit.";
+    args:
+      chdir: /var/tmp/Terraria
+    ignore_errors: yes
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ target_ip }}'
+  
+  - name: Remove old server.tgz
+    file:
+      path: /var/tmp/server.tgz
+      state: absent
+    ignore_errors: yes
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ target_ip }}'
+  
+  - name: New tarfile
+    shell: tar czf server.tgz Terraria
+    args:
+      chdir: /var/tmp
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ target_ip }}'
+  
+  - name: s3 upload
+    shell: |
+      . s3-limited.cred.env &&
+      s3put -b ca2longoria-limited -p /var/tmp server.tgz
+    args:
+      chdir: /var/tmp
+    vars:
+      ansible_ssh_user: centos
+    delegate_to: '{{ target_ip }}'
+    
+  
+

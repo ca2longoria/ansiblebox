@@ -1,0 +1,12 @@
+
+- hosts: local.centos
+  
+  tasks:
+  
+  - include_tasks: tor-browser.yaml
+    vars:
+      - ansible_ssh_user: centos
+      - ansible_ssh_private_key_file: /home/cesar/.ssh/ec2key1.pem
+    with_items:
+      - 54.209.32.233
+

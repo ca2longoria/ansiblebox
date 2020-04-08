@@ -1,0 +1,73 @@
+---
+  
+  # node_exporter install
+  - name: Get node_exporter tar file
+    get_url:
+      url: https://github.com/prometheus/node_exporter/releases/download/v0.16.0-rc.1/node_exporter-0.16.0-rc.1.linux-amd64.tar.gz
+      dest: /tmp/node_exporter.tar.gz
+  
+  - name: Untar file
+    unarchive:
+      src: /tmp/node_exporter.tar.gz
+      dest: /opt/
+      remote_src: true
+    become: true
+    register: untar
+ 
+  - name: Shell, make symlinks
+    shell: |
+      A=`find . -maxdepth 1 -type d -name 'node_exporter-*'`
+      [ -L node_exporter ] && rm node_exporter
+      [ -L /usr/local/bin/node_exporter ] && rm /usr/local/bin/node_exporter
+      ln -sf "$A" node_exporter
+      ln -sf /opt/node_exporter/node_exporter /usr/local/bin/
+    args:
+      chdir: /opt
+    become: true
+    register: symlinks_out
+  
+  - name: Start node_exporter if not running
+    shell: |
+      ps -ef | grep -v grep | grep node_exporter || {
+        nohup node_exporter 2>&1 >/tmp/node_exporter.out &
+      }
+    async: 20
+    poll: 0
+  
+  
+  # elasticsearch_exporter install
+  - name: Pull elasticsearch_exporter git repo
+    get_url:
+      url: https://github.com/justwatchcom/elasticsearch_exporter/releases/download/v1.0.2/elasticsearch_exporter-1.0.2.linux-amd64.tar.gz
+      dest: /tmp/elasticsearch_exporter.tgz
+  
+  - name: Untar es file
+    unarchive:
+      src: /tmp/elasticsearch_exporter.tgz
+      dest: /opt/
+      remote_src: true
+    become: true
+    register: untar_es
+
+  - name: Shell, make es symlinks
+    shell: |
+      A=`find . -maxdepth 1 -type d -name 'elasticsearch_exporter-*'`
+      [ -L elasticsearch_exporter ] && rm elasticsearch_exporter
+      [ -L /usr/local/bin/elasticsearch_exporter ] && rm /usr/local/bin/elasticsearch_exporter
+      ln -sf "$A" elasticsearch_exporter
+      ln -sf /opt/elasticsearch_exporter/elasticsearch_exporter /usr/local/bin/
+    args:
+      chdir: /opt
+    become: true
+    register: symlinks_out
+  
+  - name: Start elasticsearch_exporter if not running
+    shell: |
+      ps -ef | grep -v grep | grep elasticsearch_exporter || {
+        nohup elasticsearch_exporter 2>&1 >/tmp/elasticsearch_exporter.out &
+      }
+    async: 20
+    poll: 0
+ 
+
+ 
