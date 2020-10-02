@@ -21,7 +21,6 @@
   #- debug:
   #    msg: vol_size  be '{{ vol_size }}'
   
-  # NOTE: These Instances are terminated on shutdown.
   - name: Start a CentOS Instance
     ec2:
       key_name: ec2key1
@@ -50,11 +49,22 @@
   - set_fact:
       public_ip: '{{ ec2["instances"][0]["public_ip"] }}'
       root_id: '{{ ec2["instances"][0]["block_device_mapping"]["/dev/sda1"]["volume_id"] }}'
+      avol_id: '{{ ec2["instances"][0]["block_device_mapping"]["/dev/xvda"]["volume_id"] }}'
   
   - name: Set root vol name tag
     ec2_tag:
       region: us-east-1
       resource: '{{ root_id }}'
+      state: present
+      aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
+      aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
+      tags:
+        Name: centos-tmp
+   
+  - name: Set attached vol name tag
+    ec2_tag:
+      region: us-east-1
+      resource: '{{ avol_id }}'
       state: present
       aws_access_key: '{{ lookup("env","AWS_ACCESS_KEY") }}'
       aws_secret_key: '{{ lookup("env","AWS_SECRET_KEY") }}'
@@ -104,22 +114,34 @@
     vars:
       ansible_ssh_user: centos
     delegate_to: '{{ public_ip }}'
-
+  
   - name: Install packages, nice-to-have
     yum:
       name: '{{ item }}'
       state: latest
     with_items:
       - tmux
-      - transmission
       - lsof
+      - ca-certificates # updating this may solve the epel repo issue
+    become: yes
+    vars:
+      ansible_ssh_user: centos
+    ignore_errors: yes
+    delegate_to: '{{ public_ip }}'
+  
+  - name: Install packages, nice-to-have, epel-dependent
+    yum:
+      name: '{{ item }}'
+      state: latest
+    with_items:
+      - transmission
       - iftop
     become: yes
     vars:
       ansible_ssh_user: centos
     ignore_errors: yes
     delegate_to: '{{ public_ip }}'
-
+  
   - name: Install packages, node and such
     yum:
       name: '{{ item }}'
@@ -147,7 +169,7 @@
       ansible_ssh_user: centos
     ignore_errors: yes
     delegate_to: '{{ public_ip }}'
- 
+  
   - include_tasks: tor-browser.yaml
     vars:
       - ansible_ssh_user: centos

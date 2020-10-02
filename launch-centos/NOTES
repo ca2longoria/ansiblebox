@@ -2,4 +2,16 @@
 In case you forget...
 	. just run doit.yaml
 		. ansible-playbook doit.yaml
+	. don't forget to source aws creds for the shell
+
+
+2020/10/02
+
+Ran into some problem with epel repository during install.  Found a plausible
+solution here:
+https://stackoverflow.com/questions/26734777/yum-error-cannot-retrieve-metalink-for-repository-epel-please-verify-its-path
+
+Also, added the centos-tmp tag to the attached /dev/xvda volume, too.
+... Looks like it worked.  Same with the epel-repo fix; that worked, too.
+
 

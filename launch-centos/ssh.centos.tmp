@@ -1,1 +1,1 @@
-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ~/.ssh/ec2key1.pem -Y centos@54.165.74.255
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ~/.ssh/ec2key1.pem -Y centos@54.224.109.254
